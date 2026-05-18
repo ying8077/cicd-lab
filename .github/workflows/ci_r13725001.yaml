@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  ci:
+    name: CI checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Prettier format check
+        run: npm run format:check
+
+      - name: Run tests with JUnit report
+        run: |
+          mkdir -p reports
+          npm test -- --reporter=default --reporter=junit --outputFile.junit=reports/test-results.xml
+
+      - name: Publish test report
+        if: always() && hashFiles('reports/test-results.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: test-report
+          path: reports/test-results.xml
+          reporter: java-junit
